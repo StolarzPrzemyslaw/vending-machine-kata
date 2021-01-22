@@ -1,7 +1,6 @@
 package org.codecool.vendingmachine.model;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 
 public enum CoinType {
     PENNY(new BigDecimal("0.01"), 1) {

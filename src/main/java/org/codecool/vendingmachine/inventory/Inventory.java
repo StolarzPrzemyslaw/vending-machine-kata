@@ -17,17 +17,21 @@ public class Inventory {
         }
     }
 
-    public void remove(ProductType productType) throws Exception {
+    public void remove(ProductType productType) {
         if (products.containsKey(productType)) {
             products.put(productType, products.get(productType) - 1);
             if (products.get(productType) == 0) {
                 products.remove(productType);
             }
-        } else
-            throw new Exception(productType + " sold out");
+        }
     }
 
-    public boolean isSoldOut(Product product) {
-        return !products.containsKey(product.getType());
+    public boolean isSoldOut(ProductType productType) {
+        return !products.containsKey(productType);
+    }
+
+    @Override
+    public String toString() {
+        return products.toString();
     }
 }

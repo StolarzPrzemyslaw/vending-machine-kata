@@ -3,6 +3,7 @@ package org.codecool.vendingmachine.inventory;
 import org.codecool.vendingmachine.model.Coin;
 import org.codecool.vendingmachine.model.CoinType;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,5 +26,24 @@ public class MoneyCassette {
             }
         } else
             throw new Exception("No such coin " + coinType);
+    }
+
+    public BigDecimal getTotalAmount() {
+         return coins.entrySet().stream().
+                map(entry -> entry.getKey().getValue().multiply(BigDecimal.valueOf(entry.getValue()))).
+                reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public void empty() {
+        coins.clear();
+    }
+
+    public Map<CoinType, Integer> getCoins() {
+        return coins;
+    }
+
+    @Override
+    public String toString() {
+        return coins.toString();
     }
 }
