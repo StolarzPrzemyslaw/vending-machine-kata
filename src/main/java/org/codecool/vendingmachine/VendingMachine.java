@@ -4,7 +4,13 @@ import org.codecool.vendingmachine.display.DisplayManager;
 import org.codecool.vendingmachine.inventory.Inventory;
 import org.codecool.vendingmachine.inventory.MoneyCassette;
 import org.codecool.vendingmachine.model.Coin;
+import org.codecool.vendingmachine.model.CoinType;
 import org.codecool.vendingmachine.model.ProductType;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class VendingMachine {
@@ -55,12 +61,23 @@ public class VendingMachine {
             displayManager.notEnoughMoney(productType);
             return false;
         }
-        makeChange();
+//        if (creditCassette.getTotalAmount().compareTo(productType.getPrice()) > 0 &&
+//                !moneyCassette.getCoins().containsKey(CoinType.NICKEL) ||
+//            productType.equals(ProductType.CANDY) &&
+//            (!moneyCassette.getCoins().containsKey(CoinType.DIME) || moneyCassette.getCoins().getOrDefault(CoinType.NICKEL, 0) < 2)) {
+//            displayManager.exactChange();
+//            return false;
+//        }
+        finalizePurchase(productType);
+        return true;
+    }
+
+    private void finalizePurchase(ProductType productType) {
+        makeChange(productType);
         inventory.remove(productType);
         joinCassettes();
         creditCassette.empty();
         displayManager.boughtProduct(productType);
-        return true;
     }
 
     private void joinCassettes() {
@@ -68,8 +85,25 @@ public class VendingMachine {
                 forEach((key, value) -> moneyCassette.getCoins().merge(key, value, Integer::sum));
     }
 
-    public void makeChange() {
+    public void makeChange(ProductType productType) {
+        BigDecimal change = creditCassette.getTotalAmount().subtract(productType.getPrice());
+        Map<CoinType, Integer> changeMap = new HashMap<>();
+        if (change.compareTo(new BigDecimal("0")) == 0) {
+            displayManager.showChange(changeMap);
+            return;
+        }
+        CoinType smallestCreditCoin = moneyCassette.getSmallest();
 
+        while (change.compareTo(new BigDecimal("0")) != 0) {
+            change = change.subtract(smallestCreditCoin.getValue());
+            if (changeMap.containsKey(smallestCreditCoin)) {
+                changeMap.put(smallestCreditCoin, changeMap.get(smallestCreditCoin) + 1);
+            } else {
+                changeMap.put(smallestCreditCoin, 1);
+            }
+            moneyCassette.remove(smallestCreditCoin);
+        }
+        displayManager.showChange(changeMap);
     }
 
     public int computeChange(int[] coins, int[] count, int sum) {
@@ -77,30 +111,26 @@ public class VendingMachine {
         int n = coins.length;
         int[][] table = new int[n + 1][sum + 1];
 
-//        int ret = 0;
         table[0][0] = 1;
         for (int j = 1; j <= n; j++) {
             for (int i = 0; i <= sum; i++) {
-                table[j][i] += table[j-1][i];
+                table[j][i] += table[j - 1][i];
             }
-
+            System.out.println(Arrays.deepToString(table));
             for (int k = 1; k <= count[j - 1]; k++) {
                 int initial = coins[j - 1] * k;
                 for (int i = initial; i <= sum; i++) {
-                    table[j][i] += table[j-1][i - initial];
+                    table[j][i] += table[j - 1][i - initial];
                 }
             }
         }
+//        for(int i = 0; i <= n; i++) {
+//            for(int j = 0; j <= sum; j++) {
+//                System.out.print(table[i][j] + " ");
+//            }
+//            System.out.println("");
+//        }
 
-        for(int i=0; i<=n; i++) {
-            for(int j=0; j<=sum; j++) {
-                System.out.print(table[i][j] + " ");
-            }
-            System.out.println("");
-        }
-//         for (int i = 0; i <= n; i++) {
-//            ret += table[i][sum];
-//         }
         return table[n][sum];
     }
 }

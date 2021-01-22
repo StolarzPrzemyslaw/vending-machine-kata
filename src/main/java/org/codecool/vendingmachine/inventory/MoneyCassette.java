@@ -4,6 +4,8 @@ import org.codecool.vendingmachine.model.Coin;
 import org.codecool.vendingmachine.model.CoinType;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,14 +20,13 @@ public class MoneyCassette {
         }
     }
 
-    public void remove(CoinType coinType) throws Exception {
+    public void remove(CoinType coinType) {
         if (coins.containsKey(coinType)) {
             coins.put(coinType, coins.get(coinType) - 1);
             if (coins.get(coinType) == 0) {
                 coins.remove(coinType);
             }
-        } else
-            throw new Exception("No such coin " + coinType);
+        }
     }
 
     public BigDecimal getTotalAmount() {
@@ -40,6 +41,18 @@ public class MoneyCassette {
 
     public Map<CoinType, Integer> getCoins() {
         return coins;
+    }
+
+    public CoinType getSmallest() {
+        CoinType smallest = Collections.min(coins.keySet(),
+                Comparator.comparing(CoinType::getValue));
+        return smallest;
+    }
+
+    public CoinType getBiggest() {
+        CoinType biggest = Collections.max(coins.keySet(),
+                Comparator.comparing(CoinType::getValue));
+        return biggest;
     }
 
     @Override

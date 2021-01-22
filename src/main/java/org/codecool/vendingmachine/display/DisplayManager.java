@@ -6,6 +6,7 @@ import org.codecool.vendingmachine.model.CoinType;
 import org.codecool.vendingmachine.model.ProductType;
 
 import java.io.PrintStream;
+import java.util.Map;
 import java.util.Scanner;
 
 public class DisplayManager {
@@ -28,16 +29,8 @@ public class DisplayManager {
         while (isRunning) {
             System.out.println(vendingMachine.getInventory());
             System.out.println(vendingMachine.getMoneyCassette());
-            out.println("Insert coin");
-            out.println("Credit: " + vendingMachine.getCreditCassette().getTotalAmount());
-            out.println("1. " + CoinType.PENNY);
-            out.println("2. " + CoinType.NICKEL);
-            out.println("3. " + CoinType.DIME);
-            out.println("4. " + CoinType.QUARTER);
-            out.println("5. Choose product");
-            out.println("6. Return coins");
-            out.println("7. Quit");
 
+            moneyMenuInfo();
             switch (moneyChoice()) {
                 case '1':
                     vendingMachine.acceptCoin(new Coin(CoinType.PENNY));
@@ -64,6 +57,18 @@ public class DisplayManager {
         }
     }
 
+    private void moneyMenuInfo() {
+        out.println("Insert coin");
+        out.println("Credit: " + vendingMachine.getCreditCassette().getTotalAmount());
+        out.println("1. " + CoinType.PENNY);
+        out.println("2. " + CoinType.NICKEL);
+        out.println("3. " + CoinType.DIME);
+        out.println("4. " + CoinType.QUARTER);
+        out.println("5. Choose product");
+        out.println("6. Return coins");
+        out.println("7. Quit");
+    }
+
     private char moneyChoice() {
         String options = "1234567";
         String message = "Choose option: ";
@@ -87,29 +92,37 @@ public class DisplayManager {
 
     private void productMenu() {
         boolean isRunning = true;
-
+        boolean isBought;
         while (isRunning) {
             System.out.println(vendingMachine.getInventory());
             System.out.println(vendingMachine.getMoneyCassette());
-            out.println(ProductType.COLA.getCode() + ". " + ProductType.COLA);
-            out.println(ProductType.CHIPS.getCode() + ". " + ProductType.CHIPS);
-            out.println(ProductType.CANDY.getCode() + ". " + ProductType.CANDY);
-            out.println("4. Insert coin");
+            productMenuInfo();
             switch (productChoice()) {
                 case '1':
-                    isRunning = !vendingMachine.buyProduct(ProductType.COLA);
+                    isBought = vendingMachine.buyProduct(ProductType.COLA);
+                    isRunning = !isBought;
                     break;
+
                 case '2':
-                    isRunning = !vendingMachine.buyProduct(ProductType.CHIPS);
+                    isBought = vendingMachine.buyProduct(ProductType.CHIPS);
+                    isRunning = !isBought;
                     break;
                 case '3':
-                    isRunning = !vendingMachine.buyProduct(ProductType.CANDY);
+                    isBought = vendingMachine.buyProduct(ProductType.CANDY);
+                    isRunning = !isBought;
                     break;
                 case '4':
                     isRunning = false;
                     break;
             }
         }
+    }
+
+    private void productMenuInfo() {
+        out.println(ProductType.COLA.getCode() + ". " + ProductType.COLA);
+        out.println(ProductType.CHIPS.getCode() + ". " + ProductType.CHIPS);
+        out.println(ProductType.CANDY.getCode() + ". " + ProductType.CANDY);
+        out.println("4. Insert coin");
     }
 
     public void soldOut(ProductType productType) {
@@ -122,6 +135,14 @@ public class DisplayManager {
 
     public void boughtProduct(ProductType productType) {
         printMessage("You bought " + productType);
+    }
+
+    public void exactChange() {
+        printMessage("Exact change only");
+    }
+
+    public void showChange(Map<CoinType, Integer> change) {
+        printMessage("Your change is " + change.toString());
     }
 
     private void printMessage(String message) {
