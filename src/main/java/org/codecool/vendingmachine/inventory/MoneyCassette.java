@@ -43,10 +43,6 @@ public class MoneyCassette {
         return coins;
     }
 
-    public void setCoins(Map<CoinType, Integer> coins) {
-        this.coins = coins;
-    }
-
     public CoinType getSmallest() {
         CoinType smallest = Collections.min(coins.keySet(),
                 Comparator.comparing(CoinType::getValue));
