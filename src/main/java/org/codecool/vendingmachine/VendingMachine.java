@@ -8,9 +8,8 @@ import org.codecool.vendingmachine.model.CoinType;
 import org.codecool.vendingmachine.model.ProductType;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class VendingMachine {
@@ -73,11 +72,14 @@ public class VendingMachine {
     }
 
     private void finalizePurchase(ProductType productType) {
-        makeChange(productType);
-        inventory.remove(productType);
-        joinCassettes();
-        creditCassette.empty();
-        displayManager.boughtProduct(productType);
+        if (makeChange(productType)) {
+            inventory.remove(productType);
+            joinCassettes();
+            creditCassette.empty();
+            displayManager.boughtProduct(productType);
+            return;
+        }
+        displayManager.exactChange();
     }
 
     private void joinCassettes() {
@@ -85,53 +87,153 @@ public class VendingMachine {
                 forEach((key, value) -> moneyCassette.getCoins().merge(key, value, Integer::sum));
     }
 
-    public void makeChange(ProductType productType) {
+//    public void makeChange(ProductType productType) {
+//        BigDecimal change = creditCassette.getTotalAmount().subtract(productType.getPrice());
+//        Map<CoinType, Integer> changeMap = new HashMap<>();
+//        if (change.compareTo(new BigDecimal("0")) == 0) {
+//            displayManager.showChange(changeMap);
+//            return;
+//        }
+//        CoinType smallestCreditCoin = moneyCassette.getSmallest();
+//
+//        while (change.compareTo(new BigDecimal("0")) != 0) {
+//            change = change.subtract(smallestCreditCoin.getValue());
+//            if (changeMap.containsKey(smallestCreditCoin)) {
+//                changeMap.put(smallestCreditCoin, changeMap.get(smallestCreditCoin) + 1);
+//            } else {
+//                changeMap.put(smallestCreditCoin, 1);
+//            }
+//            moneyCassette.remove(smallestCreditCoin);
+//        }
+//        displayManager.showChange(changeMap);
+//    }
+
+
+    private void computeChange(List<Integer> partialResult, int currentSum, int coinIndex, List<Integer> coins, int totalSum, List<List<Integer>> result){
+        int oldSum = currentSum;
+
+        if (coinIndex == coins.size())
+            return;
+
+        int value = coins.get(coinIndex);
+
+        while (currentSum < totalSum){
+            currentSum += value;
+            partialResult.add(value);
+        }
+
+        if (currentSum == totalSum){
+            result.add(new ArrayList<>(partialResult));
+        }
+
+        while (currentSum > oldSum) {
+            currentSum -= value;
+            partialResult.remove(partialResult.size() - 1);
+
+            if (currentSum >= 0) {
+                computeChange(partialResult, currentSum, coinIndex + 1, coins, totalSum, result);
+            }
+        }
+    }
+
+    public boolean makeChange(ProductType productType) {
         BigDecimal change = creditCassette.getTotalAmount().subtract(productType.getPrice());
         Map<CoinType, Integer> changeMap = new HashMap<>();
         if (change.compareTo(new BigDecimal("0")) == 0) {
             displayManager.showChange(changeMap);
-            return;
+            return true;
         }
-        CoinType smallestCreditCoin = moneyCassette.getSmallest();
 
-        while (change.compareTo(new BigDecimal("0")) != 0) {
-            change = change.subtract(smallestCreditCoin.getValue());
-            if (changeMap.containsKey(smallestCreditCoin)) {
-                changeMap.put(smallestCreditCoin, changeMap.get(smallestCreditCoin) + 1);
-            } else {
-                changeMap.put(smallestCreditCoin, 1);
+        int totalSum = change.multiply(new BigDecimal("100")).intValue();
+        List<Integer> coins = Arrays.stream(CoinType.values()).
+                filter(CoinType::isValid).
+                map(value -> value.getValue().multiply(new BigDecimal("100")).intValue()).collect(Collectors.toList());
+        List<List<Integer>> result = new ArrayList<>();
+        computeChange(new ArrayList<>(), 0, 0, coins, totalSum, result);
+        result.sort(Comparator.comparingInt(List::size));
+        for (List<Integer> res : result) {
+            List<CoinType> coinTypeList = convertToCoinTypeList(convertToBigDecimalList(res));
+            changeMap = convertToCoinMap(coinTypeList);
+            System.out.println(changeMap);
+            if (isChangeAvailable(changeMap)) {
+                for (CoinType coinType : coinTypeList) {
+                    moneyCassette.remove(coinType);
+                }
+                displayManager.showChange(changeMap);
+                return true;
             }
-            moneyCassette.remove(smallestCreditCoin);
         }
-        displayManager.showChange(changeMap);
+
+        return false;
     }
 
-    public int computeChange(int[] coins, int[] count, int sum) {
+    private List<BigDecimal> convertToBigDecimalList(List<Integer> result) {
+        return result.stream().
+                map(BigDecimal::new).
+                map(value -> value.divide(new BigDecimal(100))).
+                collect(Collectors.toList());
+    }
 
-        int n = coins.length;
-        int[][] table = new int[n + 1][sum + 1];
-
-        table[0][0] = 1;
-        for (int j = 1; j <= n; j++) {
-            for (int i = 0; i <= sum; i++) {
-                table[j][i] += table[j - 1][i];
-            }
-            System.out.println(Arrays.deepToString(table));
-            for (int k = 1; k <= count[j - 1]; k++) {
-                int initial = coins[j - 1] * k;
-                for (int i = initial; i <= sum; i++) {
-                    table[j][i] += table[j - 1][i - initial];
+    private List<CoinType> convertToCoinTypeList(List<BigDecimal> result) {
+        List<CoinType> coinTypeList = new ArrayList<>();
+        for (CoinType coinType : CoinType.values()) {
+            for (BigDecimal value : result) {
+                if (value.compareTo(coinType.getValue()) == 0) {
+                    coinTypeList.add(coinType);
                 }
             }
         }
-//        for(int i = 0; i <= n; i++) {
-//            for(int j = 0; j <= sum; j++) {
-//                System.out.print(table[i][j] + " ");
-//            }
-//            System.out.println("");
-//        }
-
-        return table[n][sum];
+        return coinTypeList;
     }
+
+    private Map<CoinType, Integer> convertToCoinMap(List<CoinType> coinTypeList) {
+        Map<CoinType, Integer> coinMap = new HashMap<>();
+        for (CoinType coinType : coinTypeList) {
+            if (coinMap.containsKey(coinType)) {
+                coinMap.put(coinType, coinMap.get(coinType) + 1);
+            } else {
+                coinMap.put(coinType, 1);
+            }
+        }
+        return coinMap;
+    }
+
+    private boolean isChangeAvailable(Map<CoinType, Integer> coinMap) {
+            for (Map.Entry<CoinType, Integer> entry : coinMap.entrySet()) {
+                if (entry.getValue() > moneyCassette.getCoins().getOrDefault(entry.getKey(), 0)) {
+                    return false;
+                }
+            }
+        return true;
+    }
+
+
+//    public int computeChange(int[] coins, int[] count, int sum) {
+//
+//        int n = coins.length;
+//        int[][] table = new int[n + 1][sum + 1];
+//
+//        table[0][0] = 1;
+//        for (int j = 1; j <= n; j++) {
+//            for (int i = 0; i <= sum; i++) {
+//                table[j][i] += table[j - 1][i];
+//            }
+//            System.out.println(Arrays.deepToString(table));
+//            for (int k = 1; k <= count[j - 1]; k++) {
+//                int initial = coins[j - 1] * k;
+//                for (int i = initial; i <= sum; i++) {
+//                    table[j][i] += table[j - 1][i - initial];
+//                }
+//            }
+//        }
+////        for(int i = 0; i <= n; i++) {
+////            for(int j = 0; j <= sum; j++) {
+////                System.out.print(table[i][j] + " ");
+////            }
+////            System.out.println("");
+////        }
+//
+//        return table[n][sum];
+//    }
 }
 
