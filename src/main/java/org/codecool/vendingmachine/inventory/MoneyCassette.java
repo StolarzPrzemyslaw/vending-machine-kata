@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MoneyCassette {
-    private final Map<CoinType, Integer> coins = new HashMap<>();
+    private Map<CoinType, Integer> coins = new HashMap<>();
 
     public void add(Coin coin) {
         if (coins.containsKey(coin.getType())) {
@@ -41,6 +41,10 @@ public class MoneyCassette {
 
     public Map<CoinType, Integer> getCoins() {
         return coins;
+    }
+
+    public void setCoins(Map<CoinType, Integer> coins) {
+        this.coins = coins;
     }
 
     public CoinType getSmallest() {

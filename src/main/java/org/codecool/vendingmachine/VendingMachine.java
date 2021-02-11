@@ -74,7 +74,7 @@ public class VendingMachine {
     private void finalizePurchase(ProductType productType) {
         if (makeChange(productType)) {
             inventory.remove(productType);
-            joinCassettes();
+
             creditCassette.empty();
             displayManager.boughtProduct(productType);
             return;
@@ -137,8 +137,10 @@ public class VendingMachine {
     }
 
     public boolean makeChange(ProductType productType) {
+        joinCassettes();
         BigDecimal change = creditCassette.getTotalAmount().subtract(productType.getPrice());
         Map<CoinType, Integer> changeMap = new HashMap<>();
+
         if (change.compareTo(new BigDecimal("0")) == 0) {
             displayManager.showChange(changeMap);
             return true;
@@ -151,16 +153,24 @@ public class VendingMachine {
         List<List<Integer>> result = new ArrayList<>();
         computeChange(new ArrayList<>(), 0, 0, coins, totalSum, result);
         result.sort(Comparator.comparingInt(List::size));
+        System.out.println(result);
         for (List<Integer> res : result) {
             List<CoinType> coinTypeList = convertToCoinTypeList(convertToBigDecimalList(res));
             changeMap = convertToCoinMap(coinTypeList);
-            System.out.println(changeMap);
             if (isChangeAvailable(changeMap)) {
                 for (CoinType coinType : coinTypeList) {
                     moneyCassette.remove(coinType);
                 }
                 displayManager.showChange(changeMap);
                 return true;
+            }
+        }
+
+        for (Map.Entry<CoinType, Integer> entry : creditCassette.getCoins().entrySet()) {
+            int index = entry.getValue();
+            while (index > 0) {
+                moneyCassette.remove(entry.getKey());
+                index--;
             }
         }
 

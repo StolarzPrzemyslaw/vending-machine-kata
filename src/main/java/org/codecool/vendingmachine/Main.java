@@ -31,7 +31,5 @@ public class Main {
 
         machine.run();
 
-        machine.makeChange(null);
-
     }
 }
